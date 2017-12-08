@@ -5,12 +5,14 @@ package com.fmigliaro.almundo.model;
  */
 public class Call {
 
+    private static int idSeq = 1;
+
     private int id;
     private long startTimeMs;
     private long endTimeMs;
 
-    public Call(int id, long startTimeMs, long endTimeMs) {
-        this.id = id;
+    public Call() {
+        this.id = idSeq++;
     }
 
     public int getId() {

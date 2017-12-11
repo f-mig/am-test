@@ -8,19 +8,20 @@ public abstract class Employee {
     private String name;
     private Call call;
 
-    public String getName() {
+    String getName() {
         return name;
     }
 
-    public void setName(String name) {
+    void setName(String name) {
         this.name = name;
     }
 
-    public Call getCall() {
+    Call getCall() {
         return call;
     }
 
-    public void setCall(Call call) {
+    void setCall(Call call) {
         this.call = call;
     }
+
 }

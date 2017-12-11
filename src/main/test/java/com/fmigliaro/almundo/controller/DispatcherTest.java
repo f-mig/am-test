@@ -32,12 +32,11 @@ public class DispatcherTest {
     private static final int WORK_QUEUE_SIZE = 2;
 
     private static ThreadPoolExecutor threadPoolExecutor;
-    private BlockingQueue<Runnable> workQueue;
 
     @Before
     public void setUp() throws Exception {
 
-        workQueue = new ArrayBlockingQueue<>(WORK_QUEUE_SIZE);
+        final BlockingQueue<Runnable> workQueue = new ArrayBlockingQueue<>(WORK_QUEUE_SIZE);
 
         threadPoolExecutor = new ThreadPoolExecutor(THREAD_POOL_SIZE, THREAD_POOL_SIZE, Long.MAX_VALUE,
                 TimeUnit.NANOSECONDS, workQueue, new ThreadPoolExecutor.AbortPolicy());
@@ -62,9 +61,9 @@ public class DispatcherTest {
         final EmployeeHandler<Operator> opHandler = OperatorHandler.getInstance(operators, supHandler);
         ((DirectorHandler) dirHandler).setSuccessorHandler(opHandler);
 
-        final Dispatcher dispatcher = Dispatcher.getInstance(threadPoolExecutor, opHandler, workQueue, calls);
+        final Dispatcher dispatcher = Dispatcher.getInstance(threadPoolExecutor, opHandler, calls);
 
-        dispatcher.dispatchCall();
+        dispatcher.dispatchCalls();
 
         TimeUnit.SECONDS.sleep(30);
         threadPoolExecutor.shutdown();

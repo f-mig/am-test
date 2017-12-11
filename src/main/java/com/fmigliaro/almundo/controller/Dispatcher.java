@@ -23,35 +23,31 @@ class Dispatcher {
 
     private final List<Call> calls;
     private final ExecutorService executorService;
-    private final BlockingQueue<Runnable> workQueue;
     private final EmployeeHandler employeeHandler;
 
-    static Dispatcher getInstance(ExecutorService executorService, EmployeeHandler employeeHandler,
-                                  BlockingQueue<Runnable> workQueue, List<Call> calls) {
+    static Dispatcher getInstance(ExecutorService executorService, EmployeeHandler employeeHandler, List<Call> calls) {
         if (instance == null) {
-            instance = new Dispatcher(executorService, employeeHandler, workQueue, calls);
+            instance = new Dispatcher(executorService, employeeHandler, calls);
         }
         return instance;
     }
 
-    private Dispatcher(ExecutorService executorService, EmployeeHandler employeeHandler, BlockingQueue<Runnable> workQueue, List<Call> calls) {
+    private Dispatcher(ExecutorService executorService, EmployeeHandler employeeHandler, List<Call> calls) {
         this.executorService = executorService;
         this.employeeHandler = employeeHandler;
-        this.workQueue = workQueue;
         this.calls = calls;
     }
 
-    void dispatchCall() throws InterruptedException {
+    void dispatchCalls() throws InterruptedException {
 
         if (calls == null || calls.isEmpty()) {
             log.error("Cannot process calls if call list is null or empty. Exiting application...");
             return;
         }
         for (Call call : calls) {
-
             try {
                 executorService.submit(() -> employeeHandler.handleCall(call));
-                log.info("Task submitted. Internal thread pool queue size: {}", workQueue.size());
+                log.info("New Task submitted to handle {}", call);
 
             } catch (RejectedExecutionException ree) {
                 log.warn("{} couldn't be processed: all threads are busy and work queue is full. Discarding " +

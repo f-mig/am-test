@@ -2,6 +2,7 @@ package com.fmigliaro.almundo.controller.handler;
 
 import com.fmigliaro.almundo.model.Call;
 import com.fmigliaro.almundo.model.Employee;
+import com.fmigliaro.almundo.utility.CallTraceAware;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -17,18 +18,20 @@ public abstract class EmployeeHandler<T extends Employee> {
     BlockingQueue<T> employees;
     EmployeeHandler<? extends Employee> successorHandler;
 
-    public boolean handleCall(Call call) {
+    public abstract String getNoEmployeesAvailableMsg();
+
+    public boolean handleCall(Call call, CallTraceAware callTracer) {
 
         final T employee = employees.poll();
 
-        log.info(employee != null ? "is polling " + employee : " No employees available");
+        callTracer.traceCall(employee, this, call);
 
         if (employee != null) {
             processCall(call, employee);
             return true;
         }
         postProcess();
-        return successorHandler.handleCall(call);
+        return successorHandler.handleCall(call, callTracer);
     }
 
     private void processCall(Call call, T employee) {

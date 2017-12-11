@@ -26,4 +26,9 @@ public class OperatorHandler extends EmployeeHandler<Operator> {
         this.employees = employees;
         this.successorHandler = successorHandler;
     }
+
+    @Override
+    public String getNoEmployeesAvailableMsg() {
+        return "no Operators available.";
+    }
 }

@@ -8,7 +8,7 @@ public abstract class Employee {
     private String name;
     private Call call;
 
-    String getName() {
+    public String getName() {
         return name;
     }
 

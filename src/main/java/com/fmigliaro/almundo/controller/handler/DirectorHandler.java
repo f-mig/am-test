@@ -14,13 +14,14 @@ import java.util.concurrent.TimeUnit;
 public class DirectorHandler extends EmployeeHandler<Director> {
 
     private static final Logger log = LogManager.getLogger(DirectorHandler.class);
-    private static final int TIME_BETWEEN_RETRIES_SEC = 3;
     private static DirectorHandler instance;
+    private static int timeBeforeRetryMs;
 
-    public static DirectorHandler getInstance(BlockingQueue<Director> employees) {
+    public static DirectorHandler getInstance(BlockingQueue<Director> employees, int timeBeforeRetryMs) {
 
         if (instance == null) {
             instance = new DirectorHandler(employees);
+            DirectorHandler.timeBeforeRetryMs = timeBeforeRetryMs;
         }
         return instance;
     }
@@ -33,7 +34,7 @@ public class DirectorHandler extends EmployeeHandler<Director> {
     void postProcess() {
         try {
             log.info("No employees available to process call, waiting 3 seconds before retrying...");
-            TimeUnit.SECONDS.sleep(TIME_BETWEEN_RETRIES_SEC);
+            TimeUnit.MILLISECONDS.sleep(timeBeforeRetryMs);
 
         } catch (InterruptedException ie) {
             log.error("Interrupted while waiting before retrying employee availability", ie);
@@ -42,5 +43,10 @@ public class DirectorHandler extends EmployeeHandler<Director> {
 
     public void setSuccessorHandler(EmployeeHandler<? extends Employee> successorHandler) {
         this.successorHandler = successorHandler;
+    }
+
+    @Override
+    public String getNoEmployeesAvailableMsg() {
+        return "no Directors available.";
     }
 }

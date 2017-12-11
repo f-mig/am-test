@@ -2,11 +2,11 @@ package com.fmigliaro.almundo.controller;
 
 import com.fmigliaro.almundo.controller.handler.EmployeeHandler;
 import com.fmigliaro.almundo.model.Call;
+import com.fmigliaro.almundo.utility.CallTraceAware;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -24,18 +24,20 @@ class Dispatcher {
     private final List<Call> calls;
     private final ExecutorService executorService;
     private final EmployeeHandler employeeHandler;
+    private final CallTraceAware callTracer;
 
-    static Dispatcher getInstance(ExecutorService executorService, EmployeeHandler employeeHandler, List<Call> calls) {
+    static Dispatcher getInstance(ExecutorService executorService, EmployeeHandler employeeHandler, List<Call> calls, CallTraceAware callTracer) {
         if (instance == null) {
-            instance = new Dispatcher(executorService, employeeHandler, calls);
+            instance = new Dispatcher(executorService, employeeHandler, calls, callTracer);
         }
         return instance;
     }
 
-    private Dispatcher(ExecutorService executorService, EmployeeHandler employeeHandler, List<Call> calls) {
+    private Dispatcher(ExecutorService executorService, EmployeeHandler employeeHandler, List<Call> calls, CallTraceAware callTracer) {
         this.executorService = executorService;
         this.employeeHandler = employeeHandler;
         this.calls = calls;
+        this.callTracer = callTracer;
     }
 
     void dispatchCalls() throws InterruptedException {
@@ -46,8 +48,8 @@ class Dispatcher {
         }
         for (Call call : calls) {
             try {
-                executorService.submit(() -> employeeHandler.handleCall(call));
-                log.info("New Task submitted to handle {}", call);
+                log.info("Submitting new task to handle {}", call);
+                executorService.submit(() -> employeeHandler.handleCall(call, callTracer));
 
             } catch (RejectedExecutionException ree) {
                 log.warn("{} couldn't be processed: all threads are busy and work queue is full. Discarding " +

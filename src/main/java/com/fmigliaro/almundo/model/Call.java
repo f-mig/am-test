@@ -31,6 +31,10 @@ public class Call {
         return durationMs;
     }
 
+    public int getId() {
+        return id;
+    }
+
     @Override
     public String toString() {
         return "Call[id=" + id + "][duration="+ durationMs + "ms]";

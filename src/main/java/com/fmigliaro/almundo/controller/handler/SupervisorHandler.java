@@ -26,4 +26,9 @@ public class SupervisorHandler extends EmployeeHandler<Supervisor> {
         this.employees = employees;
         this.successorHandler = successorHandler;
     }
+
+    @Override
+    public String getNoEmployeesAvailableMsg() {
+        return "no Supervisors available.";
+    }
 }

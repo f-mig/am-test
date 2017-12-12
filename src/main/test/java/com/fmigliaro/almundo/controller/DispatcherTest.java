@@ -8,11 +8,10 @@ import com.fmigliaro.almundo.model.Call;
 import com.fmigliaro.almundo.model.Director;
 import com.fmigliaro.almundo.model.Operator;
 import com.fmigliaro.almundo.model.Supervisor;
-import com.fmigliaro.almundo.utility.CallTraceAware;
-import com.fmigliaro.almundo.utility.CallTraceCallList;
+import com.fmigliaro.almundo.utility.CallRegistrationAware;
+import com.fmigliaro.almundo.utility.CallRegistrationMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -64,14 +63,14 @@ public class DispatcherTest {
         final EmployeeHandler<Operator> opHandler = OperatorHandler.getInstance(operators, supHandler);
         ((DirectorHandler) dirHandler).setSuccessorHandler(opHandler);
 
-        final CallTraceAware tracer = CallTraceCallList.getInstance();
+        final CallRegistrationAware tracer = CallRegistrationMap.getInstance();
         final Dispatcher dispatcher = Dispatcher.getInstance(threadPoolExecutor, opHandler, calls, tracer);
 
         dispatcher.dispatchCalls();
 
         TimeUnit.SECONDS.sleep(7);
 
-        final CallTraceCallList listTracer = (CallTraceCallList) tracer;
+        final CallRegistrationMap listTracer = (CallRegistrationMap) tracer;
         listTracer.printCallToEmployeeMap();
 
         assertEquals("Op1", listTracer.getEmployeeNameByCallId(1));

@@ -3,6 +3,9 @@ package com.fmigliaro.almundo.model;
 import java.util.Random;
 
 /**
+ * Representa a una llamada con su id y duración.<br/>
+ * De acuerdo a la forma de instanciar a esta clase, la duración puede ser inyectada o calculada aleatoriamente.<p/>
+ *
  * Created by Francisco Migliaro on 07/12/2017.
  */
 public class Call {
@@ -13,14 +16,23 @@ public class Call {
     private int id;
     private int durationMs;
 
+    /**
+     * Este constructor, dado una duración mínima y duración máxima, determina la duración de la llamada generando<br/>
+     * un valor entero aleatorio que se encuentre dentro del rango [duración min, duración max].
+     *
+     * @param durationMinMs Límite inferior del rango dentro del cual se genera la duración aleatoria.
+     * @param durationMaxMs Límite superior del rango dentro del cual se genera la duración aleatoria.
+     */
     public Call(int durationMinMs, int durationMaxMs) {
         this.id = idSeq++;
         this.durationMs =  durationMinMs + rndDurationMs.nextInt(durationMaxMs + 1);
     }
 
     /**
-     * Used only for unit testing.
-     * @param durationMs The call duration in milliseconds.
+     * Este constructor se utiliza para testing unitario ya que permite inyectar la duración de cada llamada en lugar<br/>
+     * de que cada llamada determine su propia duración de manera aleatoria. Esto permite realizar tests determinísticos.<br/>
+     *
+     * @param durationMs La duración de llamada en milisegundos.
      */
     public Call(int durationMs) {
         this.id = idSeq++;
@@ -37,6 +49,6 @@ public class Call {
 
     @Override
     public String toString() {
-        return "Call[id=" + id + "][duration="+ durationMs + "ms]";
+        return "Llamada[id=" + id + "][duracion="+ durationMs + "ms]";
     }
 }

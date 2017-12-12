@@ -1,12 +1,17 @@
 package com.fmigliaro.almundo.model;
 
 /**
+ * Clase abstracta que representa a un empleado.<p/>
+ *
  * Created by Francisco Migliaro on 07/12/2017.
  */
 public abstract class Employee {
 
-    private String name;
-    private Call call;
+    String name;
+
+    public Employee(String name) {
+        this.name = name;
+    }
 
     public String getName() {
         return name;
@@ -15,13 +20,4 @@ public abstract class Employee {
     void setName(String name) {
         this.name = name;
     }
-
-    Call getCall() {
-        return call;
-    }
-
-    void setCall(Call call) {
-        this.call = call;
-    }
-
 }

@@ -8,6 +8,8 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Clase abstracta que contiene la lógica en común de los handlers de empleados: {@link OperatorHandler},<br/>
@@ -41,14 +43,11 @@ public abstract class EmployeeHandler<T extends Employee> {
 
         final T employee = employees.poll();
 
-        callReg.registerCall(employee, this, call);
-
         if (employee != null) {
-            processCall(call, employee);
+            processCall(call, employee, callReg);
             return;
         }
-        postProcess(call);
-        successorHandler.handleCall(call, callReg);
+        postProcess(call, callReg);
     }
 
     /**
@@ -60,10 +59,11 @@ public abstract class EmployeeHandler<T extends Employee> {
      * @param call La llamada que se desea simular su procesamiento.
      * @param employee El empleado que procesa la llamada; sólo para fines de logging.
      */
-    private void processCall(Call call, T employee) {
+    private void processCall(Call call, T employee, CallRegistrationAware callReg) {
 
         try {
             TimeUnit.MILLISECONDS.sleep(call.getDurationMs());
+            callReg.registerCall(employee, this, call);
 
         } catch (InterruptedException ie) {
             log.error("Exception mientras se procesaba la llamada: ", ie);
@@ -71,7 +71,7 @@ public abstract class EmployeeHandler<T extends Employee> {
         } finally {
             //Return the employee back to their queue
             try {
-                log.info("Colocando al {} de nuevo en su cola...", employee);
+                //log.info("Colocando al {} de nuevo en su cola...", employee);
                 employees.put(employee);
 
             } catch (InterruptedException ie) {
@@ -80,7 +80,7 @@ public abstract class EmployeeHandler<T extends Employee> {
         }
     }
 
-    void postProcess(Call call) {
-        //Empty default implementation
+    synchronized void postProcess(Call call, CallRegistrationAware callReg) {
+        successorHandler.handleCall(call, callReg);
     }
 }

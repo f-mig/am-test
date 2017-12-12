@@ -17,7 +17,7 @@ import java.util.concurrent.ConcurrentMap;
 public class CallRegistrationMap implements CallRegistrationAware {
 
     private static CallRegistrationAware instance;
-    private ConcurrentMap<Integer, Employee> callToEmployeeMap = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Integer, Employee> callToEmployeeMap = new ConcurrentHashMap<>();
 
     /**
      * Esta clase se instancia como Singleton sólo desde el <code>main thread</code>. La referencia del Singleton se<br/>
@@ -41,11 +41,12 @@ public class CallRegistrationMap implements CallRegistrationAware {
         }
     }
 
-    public String getEmployeeNameByCallId(int callId) {
-        return callToEmployeeMap.get(callId).getName();
+    public String getEmployeeTypeByCallId(int callId) {
+        return callToEmployeeMap.get(callId).getClass().getSimpleName();
     }
 
     public void printCallToEmployeeMap() {
         callToEmployeeMap.forEach( (k, v) -> System.out.println("[" + k + "," + v + "]") );
     }
+
 }

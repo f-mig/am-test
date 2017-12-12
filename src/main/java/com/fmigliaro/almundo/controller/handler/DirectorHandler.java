@@ -2,7 +2,7 @@ package com.fmigliaro.almundo.controller.handler;
 
 import com.fmigliaro.almundo.model.Call;
 import com.fmigliaro.almundo.model.Director;
-import com.fmigliaro.almundo.model.Employee;
+import com.fmigliaro.almundo.utility.CallRegistrationAware;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -54,20 +54,18 @@ public class DirectorHandler extends EmployeeHandler<Director> {
      * @param call La llamada que este handler debe procesar. Se utiliza para propósito de logging.
      */
     @Override
-    void postProcess(Call call) {
+    void postProcess(Call call, CallRegistrationAware callReg) {
+
         try {
             log.info("No hay empleados disponibles para procesar la {}. Esperando {} ms para reintentar...",
                     call, timeBeforeRetryMs);
 
             TimeUnit.MILLISECONDS.sleep(timeBeforeRetryMs);
+            handleCall(call, callReg);
 
         } catch (InterruptedException ie) {
             log.error("Exception mientras se esperaba antes de reintentar encontrar a un empleado disponible: ", ie);
         }
-    }
-
-    public void setSuccessorHandler(EmployeeHandler<? extends Employee> successorHandler) {
-        this.successorHandler = successorHandler;
     }
 
     @Override

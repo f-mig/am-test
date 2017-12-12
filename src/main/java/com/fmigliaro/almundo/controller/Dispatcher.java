@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Esta clase se encarga de despachar las llamadas. Las mismas son inyectadas en el Dispatcher al momento de su<br/>
@@ -36,20 +38,23 @@ class Dispatcher {
     private final List<Call> calls;
     private final ExecutorService executorService;
     private final EmployeeHandler employeeHandler;
-    private final CallRegistrationAware callTracer;
+    private final CallRegistrationAware callReg;
+    private final Lock lock = new ReentrantLock();
 
-    static Dispatcher getInstance(ExecutorService executorService, EmployeeHandler employeeHandler, List<Call> calls, CallRegistrationAware callTracer) {
+    static Dispatcher getInstance(ExecutorService executorService, EmployeeHandler employeeHandler, List<Call> calls,
+                                  CallRegistrationAware callReg) {
         if (instance == null) {
-            instance = new Dispatcher(executorService, employeeHandler, calls, callTracer);
+            instance = new Dispatcher(executorService, employeeHandler, calls, callReg);
         }
         return instance;
     }
 
-    private Dispatcher(ExecutorService executorService, EmployeeHandler employeeHandler, List<Call> calls, CallRegistrationAware callTracer) {
+    private Dispatcher(ExecutorService executorService, EmployeeHandler employeeHandler, List<Call> calls,
+                       CallRegistrationAware callReg) {
         this.executorService = executorService;
         this.employeeHandler = employeeHandler;
         this.calls = calls;
-        this.callTracer = callTracer;
+        this.callReg = callReg;
     }
 
     void dispatchCalls() throws InterruptedException {
@@ -61,11 +66,11 @@ class Dispatcher {
         }
         for (Call call : calls) {
             try {
-                log.info("Enviando una nueva tarea para procesar {}", call);
-                executorService.submit(() -> employeeHandler.handleCall(call, callTracer));
+                log.info("Enviando a empleado {} nueva tarea para procesar {}", employeeHandler.getClass().getSimpleName(), call);
+                executorService.submit(() -> employeeHandler.handleCall(call, callReg));
 
             } catch (RejectedExecutionException ree) {
-                log.warn("{} no pudo ser procesada: todos los threads están ocupados y la cola interna está llena. " +
+                log.warn("La {} no pudo ser procesada: todos los threads están ocupados y la cola interna está llena. " +
                         "Descartando la llamada y esperando unos segundos antes de procesar una nueva.", call);
 
                 TimeUnit.SECONDS.sleep(REJECTED_TASK_WAIT_SEC);

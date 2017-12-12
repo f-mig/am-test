@@ -20,12 +20,12 @@ public class Call {
      * Este constructor, dado una duración mínima y duración máxima, determina la duración de la llamada generando<br/>
      * un valor entero aleatorio que se encuentre dentro del rango [duración min, duración max].
      *
-     * @param durationMinMs Límite inferior del rango dentro del cual se genera la duración aleatoria.
-     * @param durationMaxMs Límite superior del rango dentro del cual se genera la duración aleatoria.
+     * @param durationStartOffsetMs Límite inferior del rango dentro del cual se genera la duración aleatoria.
+     * @param durationRangeSizeMs Límite superior del rango dentro del cual se genera la duración aleatoria.
      */
-    public Call(int durationMinMs, int durationMaxMs) {
+    public Call(int durationStartOffsetMs, int durationRangeSizeMs) {
         this.id = idSeq++;
-        this.durationMs =  durationMinMs + rndDurationMs.nextInt(durationMaxMs + 1);
+        this.durationMs =  durationStartOffsetMs + rndDurationMs.nextInt(durationRangeSizeMs + 1);
     }
 
     /**

@@ -34,21 +34,21 @@ public abstract class EmployeeHandler<T extends Employee> {
      * libere algún empleado y pueda procesarse la llamada.
      *
      * @param call La llamada que se pretende procesar.
-     * @param callTracer Objeto que permite registrar cada llamada que fue procesada y asociarla con el empleado que la
-     *                   procesó. <br/>Este registro se utiliza en los tests unitarios o para loggear para debug.
+     * @param callReg Objeto que permite registrar cada llamada que fue procesada y asociarla con el empleado que la
+     *                procesó. <br/>Este registro se utiliza en los tests unitarios o para loggear para debug.
      */
-    public void handleCall(Call call, CallRegistrationAware callTracer) {
+    public void handleCall(Call call, CallRegistrationAware callReg) {
 
         final T employee = employees.poll();
 
-        callTracer.registerCall(employee, this, call);
+        callReg.registerCall(employee, this, call);
 
         if (employee != null) {
             processCall(call, employee);
             return;
         }
         postProcess(call);
-        successorHandler.handleCall(call, callTracer);
+        successorHandler.handleCall(call, callReg);
     }
 
     /**

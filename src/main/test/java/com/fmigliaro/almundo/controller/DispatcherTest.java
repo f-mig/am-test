@@ -23,7 +23,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Created by Francisco Migliaro on 07/12/2017.
@@ -47,15 +47,48 @@ public class DispatcherTest {
     }
 
     @Test
+    public void baseTest() {
+
+    }
+
+    @Test
     public void equalNumOfCallsAndThreadsShouldProcessInCorrectOrder() throws InterruptedException {
 
-        final BlockingQueue<Operator> operators = new ArrayBlockingQueue<>(5);
-        final BlockingQueue<Supervisor> supervisors = new ArrayBlockingQueue<>(3);
-        final BlockingQueue<Director> directors = new ArrayBlockingQueue<>(2);
+        List<Integer> durations = Arrays.asList(2000, 2000, 2000, 2000, 2000, 1000, 1000, 1000, 500, 500);
+
+        final CallRegistrationMap callReg = setupTest(7, 5, 3, 2,
+                durations);
+
+        assertEquals("Op1", callReg.getEmployeeNameByCallId(1));
+        assertEquals("Op2", callReg.getEmployeeNameByCallId(2));
+        assertEquals("Op3", callReg.getEmployeeNameByCallId(3));
+        assertEquals("Op4", callReg.getEmployeeNameByCallId(4));
+        assertEquals("Op5", callReg.getEmployeeNameByCallId(5));
+        assertEquals("Sup1", callReg.getEmployeeNameByCallId(6));
+        assertEquals("Sup2", callReg.getEmployeeNameByCallId(7));
+        assertEquals("Sup3", callReg.getEmployeeNameByCallId(8));
+        assertEquals("Dir1", callReg.getEmployeeNameByCallId(9));
+        assertEquals("Dir2", callReg.getEmployeeNameByCallId(10));
+
+        threadPoolExecutor.shutdown();
+        log.info("Thread pool was shut down");
+    }
+
+    private CallRegistrationMap setupTest(long timeInSecForTestToEnd, int totalOps, int totalSups, int totalDirs,
+                                            List<Integer> callDurations) throws InterruptedException {
+
+        final BlockingQueue<Operator> operators = new ArrayBlockingQueue<>(totalOps);
+        final BlockingQueue<Supervisor> supervisors = new ArrayBlockingQueue<>(totalSups);
+        final BlockingQueue<Director> directors = new ArrayBlockingQueue<>(totalDirs);
 
         createEmployees(operators, supervisors, directors);
 
-        final List<Call> calls = createCalls(Arrays.asList(2000, 2000, 2000, 2000, 2000, 1000, 1000, 1000, 500, 500));
+        final List<Call> calls;
+        if (callDurations != null) {
+            calls = createCallsWithGivenDurations(callDurations);
+        } else {
+            calls = createCallsWithRandomDurations(10, 5, 10);
+        }
 
         final int timeBeforeRetryMs = 500;
         final EmployeeHandler<Director> dirHandler = DirectorHandler.getInstance(directors, timeBeforeRetryMs);
@@ -63,29 +96,17 @@ public class DispatcherTest {
         final EmployeeHandler<Operator> opHandler = OperatorHandler.getInstance(operators, supHandler);
         ((DirectorHandler) dirHandler).setSuccessorHandler(opHandler);
 
-        final CallRegistrationAware tracer = CallRegistrationMap.getInstance();
-        final Dispatcher dispatcher = Dispatcher.getInstance(threadPoolExecutor, opHandler, calls, tracer);
+        final CallRegistrationAware callReg = CallRegistrationMap.getInstance();
+        final Dispatcher dispatcher = Dispatcher.getInstance(threadPoolExecutor, opHandler, calls, callReg);
 
         dispatcher.dispatchCalls();
 
-        TimeUnit.SECONDS.sleep(7);
+        TimeUnit.SECONDS.sleep(timeInSecForTestToEnd);
 
-        final CallRegistrationMap listTracer = (CallRegistrationMap) tracer;
-        listTracer.printCallToEmployeeMap();
+        final CallRegistrationMap callListReg = (CallRegistrationMap) callReg;
+        callListReg.printCallToEmployeeMap();
 
-        assertEquals("Op1", listTracer.getEmployeeNameByCallId(1));
-        assertEquals("Op2", listTracer.getEmployeeNameByCallId(2));
-        assertEquals("Op3", listTracer.getEmployeeNameByCallId(3));
-        assertEquals("Op4", listTracer.getEmployeeNameByCallId(4));
-        assertEquals("Op5", listTracer.getEmployeeNameByCallId(5));
-        assertEquals("Sup1", listTracer.getEmployeeNameByCallId(6));
-        assertEquals("Sup2", listTracer.getEmployeeNameByCallId(7));
-        assertEquals("Sup3", listTracer.getEmployeeNameByCallId(8));
-        assertEquals("Dir1", listTracer.getEmployeeNameByCallId(9));
-        assertEquals("Dir2", listTracer.getEmployeeNameByCallId(10));
-
-        threadPoolExecutor.shutdown();
-        log.info("Thread pool was shut down");
+        return callListReg;
     }
 
     private void createEmployees(BlockingQueue<Operator> operators, BlockingQueue<Supervisor> supervisors, BlockingQueue<Director> directors) {
@@ -105,7 +126,7 @@ public class DispatcherTest {
         }
     }
 
-    private List<Call> createCalls(List<Integer> callDurations) {
+    private List<Call> createCallsWithGivenDurations(List<Integer> callDurations) {
 
         final List<Call> calls = new ArrayList<>(callDurations.size());
 
@@ -115,4 +136,13 @@ public class DispatcherTest {
         return calls;
     }
 
+    private List<Call> createCallsWithRandomDurations(int totalCalls, int durationMin, int durationMax) {
+
+        final List<Call> calls = new ArrayList<>(totalCalls);
+
+        for (int i = 0; i < totalCalls; i++) {
+            calls.add(new Call(durationMin, durationMax));
+        }
+        return calls;
+    }
 }

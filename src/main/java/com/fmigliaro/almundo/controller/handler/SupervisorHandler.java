@@ -13,9 +13,7 @@ import java.util.concurrent.BlockingQueue;
 public class SupervisorHandler extends EmployeeHandler<Supervisor> {
 
     /**
-     * Esta clase se instancia como Singleton sólo desde el <code>main thread</code>. La referencia del Singleton se<br/>
-     * pasa a los threads que accedan a él, por lo que no hace falta implementar un mecanismo thread-safe para<br/>
-     * realizar la instanciación, como por ejemplo double-checked locking.<br/>
+     * Constructor del Handler.
      *
      * @param employees Una blocking queue de Supervisores.
      * @param successorHandler El handler que será invocado en caso de que ningún Supervisor esté disponible para<br/>

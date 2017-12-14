@@ -13,13 +13,9 @@ import org.apache.logging.log4j.Logger;
 public class CallRegistrationLogger implements CallRegistrationAware {
 
     private static final Logger log = LogManager.getLogger(CallRegistrationLogger.class);
-    private static CallRegistrationAware instance;
 
-    public static CallRegistrationAware getInstance() {
-        if (instance == null) {
-            instance = new CallRegistrationLogger();
-        }
-        return instance;
+    public CallRegistrationLogger() {
+
     }
 
     @Override

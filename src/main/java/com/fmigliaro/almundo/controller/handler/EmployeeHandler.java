@@ -15,8 +15,8 @@ import java.util.concurrent.locks.ReentrantLock;
  * Clase abstracta que contiene la lógica en común de los handlers de empleados: {@link OperatorHandler},<br/>
  * {@link SupervisorHandler} y {@link DirectorHandler}.<br/>
  * Se encarga del manejo y procesamiento de las llamadas, siendo las clases hija las responsables<br/>
- * de definir cualquier comportamiento específico sobre dicho procesamiento.
- * <p/>
+ * de definir cualquier comportamiento específico sobre dicho procesamiento.<p/>
+ *
  * Created by Francisco Migliaro on 10/12/2017.
  *
  */
@@ -35,8 +35,7 @@ public abstract class EmployeeHandler<T extends Employee> {
      * libere algún empleado y pueda procesarse la llamada.
      *
      * @param call La llamada que se pretende procesar.
-     * @param callReg Objeto que permite registrar cada llamada que fue procesada y asociarla con el empleado que la
-     *                procesó. <br/>Este registro se utiliza en los tests unitarios o para loggear para debug.
+     * @param callReg Objeto que permite registrar el orden en que los empleados atendieron las llamadas.
      */
     public void handleCall(Call call, CallRegistrationAware callReg) {
 

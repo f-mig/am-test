@@ -1,6 +1,5 @@
 package com.fmigliaro.almundo.utility;
 
-import com.fmigliaro.almundo.model.Call;
 import com.fmigliaro.almundo.model.Employee;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

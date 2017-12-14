@@ -3,7 +3,7 @@ package com.fmigliaro.almundo.model;
 import java.util.Random;
 
 /**
- * Representa a una llamada con su id y duración.<br/>
+ * POJO que representa a una llamada con su id y duración.<br/>
  * De acuerdo a la forma de instanciar a esta clase, la duración puede ser inyectada o calculada aleatoriamente.<p/>
  *
  * Created by Francisco Migliaro on 07/12/2017.
@@ -41,10 +41,6 @@ public class Call {
 
     public int getDurationMs() {
         return durationMs;
-    }
-
-    public int getId() {
-        return id;
     }
 
     @Override

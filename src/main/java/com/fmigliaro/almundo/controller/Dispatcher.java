@@ -10,8 +10,6 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Esta clase se encarga de despachar las llamadas. Las mismas son inyectadas en el Dispatcher al momento de su<br/>
@@ -33,29 +31,26 @@ class Dispatcher {
     private static final Logger log = LogManager.getLogger(Dispatcher.class);
     private static final int REJECTED_TASK_WAIT_SEC = 3;
 
-    private static Dispatcher instance = null;
-
     private final List<Call> calls;
     private final ExecutorService executorService;
     private final EmployeeHandler employeeHandler;
     private final CallRegistrationAware callReg;
 
-    static Dispatcher getInstance(ExecutorService executorService, EmployeeHandler employeeHandler, List<Call> calls,
-                                  CallRegistrationAware callReg) {
-        if (instance == null) {
-            instance = new Dispatcher(executorService, employeeHandler, calls, callReg);
-        }
-        return instance;
-    }
-
-    private Dispatcher(ExecutorService executorService, EmployeeHandler employeeHandler, List<Call> calls,
-                       CallRegistrationAware callReg) {
+    Dispatcher(ExecutorService executorService, EmployeeHandler employeeHandler, List<Call> calls,
+               CallRegistrationAware callReg) {
         this.executorService = executorService;
         this.employeeHandler = employeeHandler;
         this.calls = calls;
         this.callReg = callReg;
     }
 
+    /**
+     * Método encargado de despachar las llamadas, enviándolas de manera asincrónica para su ejecución por un pool de<br/>
+     * threads. En caso de que una llamada sea rechazada por no haber threads disponibles y no haber espacio en la <br/>
+     * work queue interna del thread pool, la llamada es rechazada y se esperan unos segundos antes de procesar la
+     * siguiente llamada.<br/>
+     *
+     */
     void dispatchCalls() throws InterruptedException {
 
         if (calls == null || calls.isEmpty()) {

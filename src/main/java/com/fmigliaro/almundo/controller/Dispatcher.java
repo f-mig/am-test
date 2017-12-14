@@ -39,7 +39,6 @@ class Dispatcher {
     private final ExecutorService executorService;
     private final EmployeeHandler employeeHandler;
     private final CallRegistrationAware callReg;
-    private final Lock lock = new ReentrantLock();
 
     static Dispatcher getInstance(ExecutorService executorService, EmployeeHandler employeeHandler, List<Call> calls,
                                   CallRegistrationAware callReg) {
@@ -66,8 +65,9 @@ class Dispatcher {
         }
         for (Call call : calls) {
             try {
-                log.info("Enviando a empleado {} nueva tarea para procesar {}", employeeHandler.getClass().getSimpleName(), call);
-                executorService.submit(() -> employeeHandler.handleCall(call, callReg));
+                executorService.execute(() ->
+                        employeeHandler.handleCall(call, callReg)
+                );
 
             } catch (RejectedExecutionException ree) {
                 log.warn("La {} no pudo ser procesada: todos los threads están ocupados y la cola interna está llena. " +

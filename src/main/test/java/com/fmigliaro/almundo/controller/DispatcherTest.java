@@ -4,10 +4,7 @@ import com.fmigliaro.almundo.controller.handler.DirectorHandler;
 import com.fmigliaro.almundo.controller.handler.EmployeeHandler;
 import com.fmigliaro.almundo.controller.handler.OperatorHandler;
 import com.fmigliaro.almundo.controller.handler.SupervisorHandler;
-import com.fmigliaro.almundo.model.Call;
-import com.fmigliaro.almundo.model.Director;
-import com.fmigliaro.almundo.model.Operator;
-import com.fmigliaro.almundo.model.Supervisor;
+import com.fmigliaro.almundo.model.*;
 import com.fmigliaro.almundo.utility.CallRegistrationAware;
 import com.fmigliaro.almundo.utility.CallRegistrationMap;
 import org.apache.logging.log4j.LogManager;
@@ -24,7 +21,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Created by Francisco Migliaro on 07/12/2017.
@@ -34,9 +30,9 @@ public class DispatcherTest {
     private static final Logger log = LogManager.getLogger(DispatcherTest.class);
 
     private static final int THREAD_POOL_SIZE = 10;
-    private static final int WORK_QUEUE_SIZE = 3;
+    private static final int WORK_QUEUE_SIZE = 2;
 
-    private static ThreadPoolExecutor threadPoolExecutor;
+    private ThreadPoolExecutor threadPoolExecutor;
 
     @Before
     public void setUp() throws Exception {
@@ -48,53 +44,160 @@ public class DispatcherTest {
     }
 
     /**
-     * Este test cubre el caso que enunciado en la consigna del problema.<br/>
+     * <b>Este test no sólo cubre el caso base enunciado en la consigna del problema, sino que además se testea que el<br/>
+     * orden de procesamiento de las llamadas atendidas por los empleados sea el correcto</b>, es decir:<br/>
+     * Asignar primero a Operadores libres, de no haber, asignar a Supervisores, de no haber, asignar a Directores. Si no<br/>
+     * hubiera Directores libres, se decide esperar unos segundos y volver a intentar asignar a Directores hasta que alguno<br/>
+     * se libere.<br/>
+     * Para desarrollar esta solución, se eligió implementar el patrón de diseño <b>Chain of Responsibility</b>.<br/><br/>
+     * El test consiste en lo siguiente:<br/>
      * Se generan 10 llamadas, cada una con una duración aleatoria de entre 5 y 10 segundos. A su vez, se generan<br/>
      * 10 empleados de distinto tipo (4 operadores, 3 supervisores y 3 directores). Dado que todas las tareas se asignan<br/>
-     * más rápido que el tiempo mínimo en el que se procesa una tarea (5 segundos), esto implica que el orden de asignación<br/>
-     * de llamadas debería ser siempre determinístico, es decir, las primeras 4 llamadas para los Operadores disponibles,<br/>
-     * las 3 siguientes para los Supervisores y por último las 3 restantes para los Directores.
+     * más rápido (casi inmediatamente) que el tiempo mínimo en el que se procesa una tarea (5 segundos), esto implica<br/>
+     * que el orden de asignación de llamadas es determinístico, es decir, las primeras 4 llamadas serán para los<br/>
+     * Operadores disponibles, las 3 siguientes para los Supervisores y por último, las 3 restantes para los Directores.
      *
      * @throws InterruptedException
      */
     @Test
     public void baseTest() throws InterruptedException {
 
-        final CallRegistrationMap callReg = setupTestRandomDurations(7, 4, 3, 3);
+        final CallRegistrationMap callReg = setupTestRandomDurations(7, 4, 3,
+                3, 10);
 
-        assertEquals("Operator", callReg.getEmployeeTypeByCallId(1));
-        assertEquals("Operator", callReg.getEmployeeTypeByCallId(2));
-        assertEquals("Operator", callReg.getEmployeeTypeByCallId(3));
-        assertEquals("Operator", callReg.getEmployeeTypeByCallId(4));
-        assertEquals("Supervisor", callReg.getEmployeeTypeByCallId(5));
-        assertEquals("Supervisor", callReg.getEmployeeTypeByCallId(6));
-        assertEquals("Supervisor", callReg.getEmployeeTypeByCallId(7));
-        assertEquals("Director", callReg.getEmployeeTypeByCallId(8));
-        assertEquals("Director", callReg.getEmployeeTypeByCallId(9));
-        assertEquals("Director", callReg.getEmployeeTypeByCallId(10));
-    }
-
-    @Test
-    public void equalNumOfCallsAndThreadsShouldProcessInCorrectOrder() throws InterruptedException {
-
-        List<Integer> durations = Arrays.asList(2000, 2000, 2000, 2000, 2000, 1000, 1000, 1000, 500, 500);
-
-        final CallRegistrationMap callReg = setupTestDefinedDurations(7, 5, 3, 2,
-                durations);
-
-        assertEquals("Operator", callReg.getEmployeeTypeByCallId(1));
-        assertEquals("Operator", callReg.getEmployeeTypeByCallId(2));
-        assertEquals("Operator", callReg.getEmployeeTypeByCallId(3));
-        assertEquals("Operator", callReg.getEmployeeTypeByCallId(4));
-        assertEquals("Operator", callReg.getEmployeeTypeByCallId(5));
-        assertEquals("Supervisor", callReg.getEmployeeTypeByCallId(6));
-        assertEquals("Supervisor", callReg.getEmployeeTypeByCallId(7));
-        assertEquals("Supervisor", callReg.getEmployeeTypeByCallId(8));
-        assertEquals("Director", callReg.getEmployeeTypeByCallId(9));
-        assertEquals("Director", callReg.getEmployeeTypeByCallId(10));
+        assertEquals("Operator", callReg.getEmployeeTypeFromQueue());
+        assertEquals("Operator", callReg.getEmployeeTypeFromQueue());
+        assertEquals("Operator", callReg.getEmployeeTypeFromQueue());
+        assertEquals("Operator", callReg.getEmployeeTypeFromQueue());
+        assertEquals("Supervisor", callReg.getEmployeeTypeFromQueue());
+        assertEquals("Supervisor", callReg.getEmployeeTypeFromQueue());
+        assertEquals("Supervisor", callReg.getEmployeeTypeFromQueue());
+        assertEquals("Director", callReg.getEmployeeTypeFromQueue());
+        assertEquals("Director", callReg.getEmployeeTypeFromQueue());
+        assertEquals("Director", callReg.getEmployeeTypeFromQueue());
 
         threadPoolExecutor.shutdown();
-        log.info("Thread pool was shut down");
+        threadPoolExecutor.awaitTermination(2, TimeUnit.SECONDS);
+    }
+
+    /**
+     * <b>Este test cubre la consigna extra que plantea qué pasa con una llamada cuando no hay ningún empleado libre.</b><br/>
+     * En ese caso la lógica es la siguiente:<br/><br/>
+     * 1) Cada llamada es atendida por el Dispatcher y despachada por el ThreadPoolExecutor, asignando de manera<br/>
+     * asíncrona a cada una un thread que se encargará de atenderla.<br/>
+     * 2) Dado que el ThreadPoolExecutor se configuró con 10 fixed threads y una work queue de tamaño 2, al llegar la<br/>
+     * llamada número 11, el executor almacenará en su work queue interna el Runnable que contiene a la llamada a<br/>
+     * procesar.<br/>
+     * 3) Repetirá este proceso por cada llamada que no pueda ser inmediatamente atendida, hasta llenar la<br/>
+     * work queue. De ocurrir lo anterior, el executor descartará la llamada. Esto permite en un escenario real,<br/>
+     * evitar que la cola de mensajes de la cual se consumen las llamadas, crezca demasiado en el caso en que el<br/>
+     * procesamiento de las llamadas (consumidor) sea más lento que el arrivo de las mismas (productor).<br/><br/>
+     *
+     * Para testear este escenario, se setean las primeras 6 llamadas (que deberán se atendidas por Operadores) con la<br/>
+     * mitad de duración de las 4 llamadas subsiguientes (que deberán ser atendidas 2 por Supervisores y 2 por<br/>
+     * Directores). De esta manera, nos aseguramos que siempre terminen primero los Operadores y sean 2 Operadores los<br/>
+     * que atiendan las dos llamadas extra cuando se desocupen.
+     *
+     * @throws InterruptedException
+     */
+    @Test
+    public void noEmployeesAvailableShouldWaitAndProcessCorrectly() throws InterruptedException {
+
+        //Inicializar con 12 llamadas.
+        final List<Integer> durations = Arrays.asList(500, 500, 500, 500, 500, 500, 1000, 1000, 1000, 1000, 1000, 1000);
+
+        //Definir menos empleados que llamadas, en este caso un total de 10.
+        final CallRegistrationMap callReg = setupTestDefinedDurations(2, 6, 2,
+                2, durations, durations.size());
+
+        assertEquals("Operator", callReg.getEmployeeTypeFromQueue());
+        assertEquals("Operator", callReg.getEmployeeTypeFromQueue());
+        assertEquals("Operator", callReg.getEmployeeTypeFromQueue());
+        assertEquals("Operator", callReg.getEmployeeTypeFromQueue());
+        assertEquals("Operator", callReg.getEmployeeTypeFromQueue());
+        assertEquals("Operator", callReg.getEmployeeTypeFromQueue());
+        assertEquals("Supervisor", callReg.getEmployeeTypeFromQueue());
+        assertEquals("Supervisor", callReg.getEmployeeTypeFromQueue());
+        assertEquals("Director", callReg.getEmployeeTypeFromQueue());
+        assertEquals("Director", callReg.getEmployeeTypeFromQueue());
+        assertEquals("Operator", callReg.getEmployeeTypeFromQueue());
+        assertEquals("Operator", callReg.getEmployeeTypeFromQueue());
+
+        threadPoolExecutor.shutdown();
+        threadPoolExecutor.awaitTermination(2, TimeUnit.SECONDS);
+    }
+
+    /**
+     * Este test cubre la consigna extra que plantea qué pasa con una llamada cuando ingresan más de 10 llamadas<br/>
+     * concurrentes. En ese caso la lógica es la siguiente:<br/><br/>
+     * 1) Cada llamada es atendida por el Dispatcher y despachada por el ThreadPoolExecutor, asignando de manera<br/>
+     * asíncrona a cada llamada un thread que se encargará de atenderla.<br/>
+     * 2) Dado que el ThreadPoolExecutor se configuró con 10 fixed threads y una work queue de tamaño 2, al llegar la<br/>
+     * llamada número 11, el executor almacenará en su work queue interna el Runnable que contiene a la llamada a<br/>
+     * procesar.<br/>
+     * 3) Repetirá este proceso por cada llamada que no pueda ser inmediatamente atendida, hasta llenar la<br/>
+     * work queue. De ocurrir lo anterior, el executor descartará la llamada. Esto permite en un escenario real,<br/>
+     * evitar que la cola de mensajes de la cual se consumen las llamadas, crezca demasiado en el caso en que el<br/>
+     * procesamiento de las llamadas (consumidor) sea más lento que el arrivo de las mismas (productor).<br/><br/>
+     *
+     * Para testear este escenario, se setean las primeras 6 llamadas (que deberán se atendidas por Operadores) con la<br/>
+     * mitad de duración de las 4 llamadas subsiguientes (que deberán ser atendidas 2 por Supervisores y 2 por<br/>
+     * Directores). De esta manera, nos aseguramos que siempre terminen primero los Operadores y sean 2 Operadores los<br/>
+     * que atiendan las dos llamadas extra cuando se desocupen.
+     *
+     * @throws InterruptedException
+     */
+    @Test
+    public void moreCallsThanThreadsWithoutDiscardingCallsShouldProcessInCorrectOrder() throws InterruptedException {
+
+        //Inicializar con 12 llamadas.
+        final List<Integer> durations = Arrays.asList(500, 500, 500, 500, 500, 500, 1000, 1000, 1000, 1000, 1000, 1000);
+
+        //Definir menos empleados que llamadas, en este caso un total de 10.
+        final CallRegistrationMap callReg = setupTestDefinedDurations(2, 6, 2,
+                2, durations, durations.size());
+
+        assertEquals("Operator", callReg.getEmployeeTypeFromQueue());
+        assertEquals("Operator", callReg.getEmployeeTypeFromQueue());
+        assertEquals("Operator", callReg.getEmployeeTypeFromQueue());
+        assertEquals("Operator", callReg.getEmployeeTypeFromQueue());
+        assertEquals("Operator", callReg.getEmployeeTypeFromQueue());
+        assertEquals("Operator", callReg.getEmployeeTypeFromQueue());
+        assertEquals("Supervisor", callReg.getEmployeeTypeFromQueue());
+        assertEquals("Supervisor", callReg.getEmployeeTypeFromQueue());
+        assertEquals("Director", callReg.getEmployeeTypeFromQueue());
+        assertEquals("Director", callReg.getEmployeeTypeFromQueue());
+        assertEquals("Operator", callReg.getEmployeeTypeFromQueue());
+        assertEquals("Operator", callReg.getEmployeeTypeFromQueue());
+
+        threadPoolExecutor.shutdown();
+        threadPoolExecutor.awaitTermination(2, TimeUnit.SECONDS);
+    }
+
+    /**
+     * Este test corrobora qué debiera ocurrir cuando: [#llamadas] > [#threads] + [tamaño thread pool work queue].
+     * En este caso, [#llamadas=13] > [#threads=10] + [tamaño thread pool work queue=2]. Por lo tanto, lo único que
+     * debemos asegurarnos es que el remaining capacity del thread pool work queue sea igual a 1, dado que la política
+     * elegida cuando ocurre el caso aquí testeado es que se descarte la llamada que no pudo ser procesada.
+     * En un escenario real, el work queue del thread pool se setearía con valores mayores a 3 así puede soportar el
+     * caso en donde las llamadas llegan a la cola más rápido de lo que pueden ser procesadas concurrentemente.
+     *
+     * @throws InterruptedException
+     */
+    @Test
+    public void moreCallsThanThreadsAndWorkingQueueSizeShouldDiscardOneCall() throws InterruptedException {
+
+        //Inicializar con 13 llamadas (una de las llamadas se debería descartar siempre).
+        final List<Integer> durations = Arrays.asList(500, 500, 500, 500, 500, 500, 1000, 1000, 1000, 1000, 1000, 1000, 1000);
+
+        //Definir menos empleados que llamadas, en este caso un total de 10.
+        final CallRegistrationMap callReg = setupTestDefinedDurations(2, 6, 2,
+                2, durations, durations.size());
+
+        assertEquals(1, callReg.getRegSizeRemainingCapacity());
+
+        threadPoolExecutor.shutdown();
+        threadPoolExecutor.awaitTermination(2, TimeUnit.SECONDS);
     }
 
     /**
@@ -112,38 +215,52 @@ public class DispatcherTest {
      * @param callDurations Lista de duraciones de llamada en millisegundos, para las cuales se crearán las llamadas
      *                      correspondientes. Si se pasa null, significa que las llamadas se generarán con duraciones
      *                      aleatorias de entre 5 y 10 segundos.
+     * @param callRegSize Tamaño de la cola utilizada para registrar el orden en que los empleados procesan las llamadas.
      * @return Un objeto que registra la asociación entre llamada y empleado que la atendió.
      * @throws InterruptedException
      */
     private CallRegistrationMap setupTestDefinedDurations(long timeInSecForTestToEnd, int totalOps, int totalSups, int totalDirs,
-                                                          List<Integer> callDurations) throws InterruptedException {
+                                                          List<Integer> callDurations, int callRegSize) throws InterruptedException {
 
+        //Crear las 3 colas de Operadores, Supervisores y Directores.
         final BlockingQueue<Operator> operators = new ArrayBlockingQueue<>(totalOps);
         final BlockingQueue<Supervisor> supervisors = new ArrayBlockingQueue<>(totalSups);
         final BlockingQueue<Director> directors = new ArrayBlockingQueue<>(totalDirs);
 
+        //Generar empleados de cada tipo.
         createEmployees(operators, supervisors, directors);
 
         final List<Call> calls;
+        //Generar las llamadas, ya sea con duraciones aleatorias o preestablecidas.
         if (callDurations != null) {
             calls = createCallsWithGivenDurations(callDurations);
         } else {
-            calls = createCallsWithRandomDurations(10, 5000, 5000);
+            final int totalCalls = 10;
+            final int durStartOffsetMs = 5000;
+            final int durRangeSizeMs = 5000;
+
+            calls = createCallsWithRandomDurations(totalCalls, durStartOffsetMs, durRangeSizeMs);
         }
-        final int timeBeforeRetryMs = 500;
-        final EmployeeHandler<Director> dirHandler = DirectorHandler.getInstance(directors, timeBeforeRetryMs);
+        final int retryTimeoutMs = 500;
+
+        //Crear cada Employee Handler, inyectando las dependencias necesarias.
+        final EmployeeHandler<Director> dirHandler = DirectorHandler.getInstance(directors, retryTimeoutMs);
         final EmployeeHandler<Supervisor> supHandler = SupervisorHandler.getInstance(supervisors, dirHandler);
         final EmployeeHandler<Operator> opHandler = OperatorHandler.getInstance(operators, supHandler);
 
-        final CallRegistrationAware callReg = CallRegistrationMap.getInstance();
-        final Dispatcher dispatcher = Dispatcher.getInstance(threadPoolExecutor, opHandler, calls, callReg);
+        //Instanciar el objeto que va a registrar el orden en qué cada empleado atendió las llamadas.
+        final CallRegistrationAware callReg = CallRegistrationMap.getInstance(callRegSize);
 
+        //Crear el Dispatcher e inyectarle sus dependencias.
+        final Dispatcher dispatcher = Dispatcher.getInstance(threadPoolExecutor, opHandler, calls, callReg);
         dispatcher.dispatchCalls();
 
+        //Darle un tiempo a los threads a que terminen de ejecutarse antes de terminar el test.
         TimeUnit.SECONDS.sleep(timeInSecForTestToEnd);
 
+        //Imprimir el registro de llamadas.
         final CallRegistrationMap callListReg = (CallRegistrationMap) callReg;
-        callListReg.printCallToEmployeeMap();
+        callListReg.printEmployeeCallProcessingOrder();
 
         return callListReg;
     }
@@ -157,12 +274,14 @@ public class DispatcherTest {
      * @param totalOps Número total de Operadores que se desea generar.
      * @param totalSups Número total de Supervisores que se desea generar.
      * @param totalDirs Número total de Directores que se desea generar.
+     * @param callRegSize Tamaño de la cola utilizada para registrar el orden en que los empleados procesan las llamadas.
      * @return Un objeto que registra la asociación entre llamada y empleado que la atendió.
      * @throws InterruptedException
      */
     private CallRegistrationMap setupTestRandomDurations(long timeInSecForTestToEnd, int totalOps, int totalSups,
-                                                         int totalDirs) throws InterruptedException {
-        return setupTestDefinedDurations(timeInSecForTestToEnd, totalOps, totalSups, totalDirs, null);
+                                                         int totalDirs, int callRegSize) throws InterruptedException {
+
+        return setupTestDefinedDurations(timeInSecForTestToEnd, totalOps, totalSups, totalDirs, null, callRegSize);
     }
 
     private void createEmployees(BlockingQueue<Operator> operators, BlockingQueue<Supervisor> supervisors,
@@ -201,5 +320,9 @@ public class DispatcherTest {
             calls.add(new Call(durationStartOffsetMs, durationRangeSizeMs));
         }
         return calls;
+    }
+
+    private void printEmployees(BlockingQueue<? extends Employee> employeeQueue) {
+        employeeQueue.forEach(log::info);
     }
 }

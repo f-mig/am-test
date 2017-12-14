@@ -25,8 +25,7 @@ public abstract class EmployeeHandler<T extends Employee> {
     private static final Logger log = LogManager.getLogger(EmployeeHandler.class);
     BlockingQueue<T> employees;
     EmployeeHandler<? extends Employee> successorHandler;
-
-    public abstract String getNoEmployeesAvailableMsg();
+    private Lock pollingLock = new ReentrantLock();
 
     /**
      * Se encarga del manejo de la llamada pasada por parámetro. Para ello, intenta obtener algún empleado disponible<br/>
@@ -41,46 +40,32 @@ public abstract class EmployeeHandler<T extends Employee> {
      */
     public void handleCall(Call call, CallRegistrationAware callReg) {
 
-        final T employee = employees.poll();
+        pollingLock.lock();
+        final T employee;
+        try {
+            employee = employees.poll();
+            callReg.addEmployeeInCallProcessingOrder(employee);
+        } finally {
+            pollingLock.unlock();
+        }
 
         if (employee != null) {
-            processCall(call, employee, callReg);
-            return;
-        }
-        postProcess(call, callReg);
-    }
-
-    /**
-     * Método auxiliar que simula procesamiento de una llamada pasada por parámetro.<br/>
-     * Cada llamada determina cuál será su duración de manera aleatoria y al momento de ser instanciada, y<br/>
-     * dicha duración <code>t</code> representa el tiempo de procesamiento simulado. Para lograr dicho procesamiento,<br/>
-     * el método pone en <b>sleep</b> una cantidad de tiempo <code>t</code> al thread que está procesando la llamada.
-     *
-     * @param call La llamada que se desea simular su procesamiento.
-     * @param employee El empleado que procesa la llamada; sólo para fines de logging.
-     */
-    private void processCall(Call call, T employee, CallRegistrationAware callReg) {
-
-        try {
-            TimeUnit.MILLISECONDS.sleep(call.getDurationMs());
-            callReg.registerCall(employee, this, call);
-
-        } catch (InterruptedException ie) {
-            log.error("Exception mientras se procesaba la llamada: ", ie);
-
-        } finally {
-            //Return the employee back to their queue
             try {
-                //log.info("Colocando al {} de nuevo en su cola...", employee);
-                employees.put(employee);
+                TimeUnit.MILLISECONDS.sleep(call.getDurationMs());
 
             } catch (InterruptedException ie) {
-                log.error("Exception mientras se intentaba colocar al empleado de nuevo en su cola: ", ie);
+                log.error("Ocurrió una Exception mientras se procesaba la llamada: ", ie);
+            } finally {
+                //Dado que el empleado finalizó el procesamiento de la llamada, se lo vuelve a insertar en su
+                //respectiva cola con el objeto de estar disponible para procesar una nueva llamada.
+                employees.offer(employee);
             }
+        } else {
+            postProcess(call, callReg);
         }
     }
 
-    synchronized void postProcess(Call call, CallRegistrationAware callReg) {
+    void postProcess(Call call, CallRegistrationAware callReg) {
         successorHandler.handleCall(call, callReg);
     }
 }

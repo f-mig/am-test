@@ -67,9 +67,4 @@ public class DirectorHandler extends EmployeeHandler<Director> {
             log.error("Exception mientras se esperaba antes de reintentar encontrar a un empleado disponible: ", ie);
         }
     }
-
-    @Override
-    public String getNoEmployeesAvailableMsg() {
-        return "no hay Directores disponibles.";
-    }
 }

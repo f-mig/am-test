@@ -1,6 +1,5 @@
 package com.fmigliaro.almundo.utility;
 
-import com.fmigliaro.almundo.controller.handler.EmployeeHandler;
 import com.fmigliaro.almundo.model.Call;
 import com.fmigliaro.almundo.model.Employee;
 import org.apache.logging.log4j.LogManager;
@@ -25,12 +24,10 @@ public class CallRegistrationLogger implements CallRegistrationAware {
     }
 
     @Override
-    public void registerCall(Employee employee, EmployeeHandler employeeHandler, Call call) {
+    public void addEmployeeInCallProcessingOrder(Employee employee) {
 
         if (employee != null){
-            log.info("El empleado {} procesará la {}", employee, call);
-        } else {
-            log.info("Intentando procesar la {} pero {}", call, employeeHandler.getNoEmployeesAvailableMsg());
+            log.info("El empleado {} procesó la llamada", employee);
         }
     }
 }

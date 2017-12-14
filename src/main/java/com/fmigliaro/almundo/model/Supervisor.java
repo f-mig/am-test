@@ -13,6 +13,6 @@ public class Supervisor extends Employee {
 
     @Override
     public String toString() {
-        return "Supervisor[name=" + getName() + "]";
+        return "Supervisor[nombre=" + getName() + "]";
     }
 }
